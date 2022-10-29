@@ -1,113 +1,67 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
-#include <chrono>
-#include <iostream>
-#include <fstream>
-#include <cmath>
 #include <list>
 
-#include <tensorflow/lite/model.h>
-#include <tensorflow/lite/interpreter.h>
 #include <tensorflow/lite/kernels/register.h>
 
-
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/dnn.hpp>
 
-#define MAX_PALM_NUM   4
-
-typedef struct fvec2
-{
-    float x, y;
-} fvec2;
-
-typedef struct fvec3
-{
-    float x, y, z;
-} fvec3;
-
-typedef struct rect_t
-{
-    fvec2 topleft;
-    fvec2 btmright;
-} rect_t;
-
-typedef struct _palm_t
-{
-    float  score;
-    rect_t rect;
-    fvec2  keys[7];
-    float  rotation;
-
-    float  hand_cx;
-    float  hand_cy;
-    float  hand_w;
-    float  hand_h;
-    fvec2  hand_pos[4];
-} palm_t;
-typedef struct _palm_detection_result_t
-{
-    int num;
-    palm_t palms[MAX_PALM_NUM];
-} palm_detection_result_t;
+#include "typedef_struct.h"
 
 
 class PALM
 {
 public:
     // Take a model path as string
-    void loadModel(const  std::string model_path);
+    void loadModel(const std::string &palm_model_path);
     // Take an image and return a prediction
-    void run(cv::Mat image, std::vector<cv::Rect> &bboxes);
-
+    void run(const cv::Mat &frame, palm_detection_result_t &palm_result);
     // thresh hold
-    float confThreshold = 0.5;
-    float nmsThreshold = 0.5;
-
+    float confThreshold = 0.9;
+    float nmsThreshold  = 0.5;
     // number of threads
     int nthreads = 4;
 
-    void preprocess(cv::Mat &image);
+private:
+
+    // NonMaxSuppression
+    float calc_intersection_over_union(rect_t &rect0, rect_t &rect1);
+    // bool compare(palm_t &v1, palm_t &v2);
+    int non_max_suppression(std::list<palm_t> &face_list, std::list<palm_t> &face_sel_list, float iou_thresh);
+   
+    // Expand palm to hand
+    float normalize_radians(float angle);
+    void compute_rotation(palm_t &palm);
+    void rot_vec(fvec2 &vec, float rotation);
+    void compute_hand_rect(palm_t &palm);
+    void pack_palm_result(palm_detection_result_t *palm_result, std::list<palm_t> &palm_list);
 
 
-    // model's
-    std::unique_ptr<tflite::FlatBufferModel> _model;
-    std::unique_ptr<tflite::Interpreter> _interpreter;
-    tflite::StderrReporter _error_reporter;
-    // TfLiteTensor *pOutputTensor_bbox;
-    // TfLiteTensor *pOutputTensor_prob;
-    float *pOutputTensor_bbox;
-    float *pOutputTensor_prob;
-    // parameters of interpreter's input
-    int _input;
-    int _in_height;
-    int _in_width;
-    int _in_channels;
-    int _in_type;
+    // Decode palm detection result
+    int decode_keypoints (std::list<palm_t> &palm_list, float score_thresh);
 
-    // parameters of original image
-    int _img_height;
-    int _img_width;
+
+    // palm model's
+    std::unique_ptr<tflite::FlatBufferModel> _palm_model;
+    std::unique_ptr<tflite::Interpreter> _palm_interpreter;
+    tflite::StderrReporter _palm_error_reporter;
+
+    // models info
+    int _palm_input; // model input layer number 
+    int _palm_in_height;
+    int _palm_in_width;
+    int _palm_in_channels;
+    int _palm_in_type;
 
     // Input of the interpreter
-    float_t *_input_;
+    float *_pPalmInputLayer;
+
+    // outputs of the interpreter
+    float *_pPalmOutputLayerBbox;
+    float *_pPalmOutputLayerProb;
 
     // int _delegate_opt;
     // TfLiteDelegate *_delegate;
-    // std::vector<std::vector<float>> anchors;
-
-    template <typename T>
-    void fill(T *in, cv::Mat &src);
-    int decode_keypoints (std::list<palm_t> &palm_list, float score_thresh);
-    std::vector<std::vector<float_t>> tensorToVector2D(TfLiteTensor *pOutputTensor, const int &row, const int &colum);
-    std::vector<float_t>              tensorToVector1D(TfLiteTensor *pOutputTensor, const int &row);
-    void nonMaximumSuppression(std::vector<std::vector<float>> pred_bbox, std::vector<float> pred_anchor, std::vector<cv::Rect> &bboxes);
-    // void read_csv(std::string path,std::vector<std::vector<float>> &anchors);
-
-    void print_2d_tensor(std::vector<std::vector<float>> v);
 };
