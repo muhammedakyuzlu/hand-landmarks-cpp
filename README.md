@@ -2,9 +2,9 @@
 
 C++ Hand landmarks detection using google mediapipe models 
 
-In progress ...
+- [x] Palm detection
+- [ ] Hand Landmark detection
 
-The code contains some bugs. working on fixing them
 
 
 # Related
