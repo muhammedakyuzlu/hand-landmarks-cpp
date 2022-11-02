@@ -19,8 +19,8 @@ public:
     // Take an image and return a prediction
     void run(const cv::Mat &frame, palm_detection_result_t &palm_result);
     // thresh hold
-    float confThreshold = 0.9;
-    float nmsThreshold  = 0.5;
+    float confThreshold = 0.5   ;
+    float nmsThreshold  = 0.3;
     // number of threads
     int nthreads = 4;
 

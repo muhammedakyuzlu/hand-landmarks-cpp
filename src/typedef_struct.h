@@ -24,19 +24,26 @@ typedef struct _hand_landmark_result_t
 {
     float score;
     fvec3 joint[HAND_JOINT_NUM];
+    fvec2 offset;
 } hand_landmark_result_t;
 
 typedef struct _palm_t
 {
-    float  score;
-    rect_t rect;
-    fvec2  keys[7];
-    float  rotation;
-
+    // model outputs after decoding
     float  hand_cx;
     float  hand_cy;
     float  hand_w;
     float  hand_h;
+    fvec2  keys[7];
+
+    // model outputs 
+    float  score;
+    
+    // palm rectangle
+    rect_t rect;
+
+    // hole hand rectangle
+    float  rotation;
     fvec2  hand_pos[4];
 } palm_t;
 

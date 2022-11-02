@@ -2,6 +2,7 @@
 #include "anchors.cpp"
 #include "image_preprocess.h"
 
+
 #include <iostream>
 
 /* -------------------------------------------------- *
@@ -33,13 +34,13 @@ void PALM::loadModel(const std::string &palm_model_path)
     // input information
     _palm_input = _palm_interpreter->inputs()[0];
     TfLiteIntArray *dims = _palm_interpreter->tensor(_palm_input)->dims;
-    _palm_in_height = dims->data[1];
-    _palm_in_width = dims->data[2];
+    _palm_in_height   = dims->data[1];
+    _palm_in_width    = dims->data[2];
     _palm_in_channels = dims->data[3];
     _palm_in_type = _palm_interpreter->tensor(_palm_input)->type;
+
     // input layer
     _pPalmInputLayer = _palm_interpreter->typed_tensor<float>(_palm_input);
-
     // outputs layer
     _pPalmOutputLayerBbox = _palm_interpreter->typed_tensor<float>(_palm_interpreter->outputs()[0]);
     _pPalmOutputLayerProb = _palm_interpreter->typed_tensor<float>(_palm_interpreter->outputs()[1]);
@@ -58,7 +59,7 @@ int PALM::decode_keypoints(std::list<palm_t> &palm_list, float score_thresh)
     palm_t palm_item;
     int i = 0;
 
-    for (auto itr = s_anchors.begin(); itr != s_anchors.end(); i++, itr++)
+    for (auto itr = s_anchors.begin(); itr != s_anchors.end(); i++ , itr++)
     {
         Anchor anchor = *itr;
         float score0 = _pPalmOutputLayerProb[i];
@@ -66,6 +67,7 @@ int PALM::decode_keypoints(std::list<palm_t> &palm_list, float score_thresh)
         if (score > score_thresh)
         {
             float *p = _pPalmOutputLayerBbox + (i * 18);
+            
             /* boundary box */
             float sx = p[0];
             float sy = p[1];
@@ -77,24 +79,26 @@ int PALM::decode_keypoints(std::list<palm_t> &palm_list, float score_thresh)
 
             cx /= (float)_palm_in_width;
             cy /= (float)_palm_in_height;
-            w /= (float)_palm_in_width;
-            h /= (float)_palm_in_height;
+            w  /= (float)_palm_in_width;
+            h  /= (float)_palm_in_height;
 
             fvec2 topleft, btmright;
-            topleft.x = cx - w * 0.5f;
-            topleft.y = cy - h * 0.5f;
+            topleft.x  = cx - w * 0.5f;
+            topleft.y  = cy - h * 0.5f;
             btmright.x = cx + w * 0.5f;
             btmright.y = cy + h * 0.5f;
+
 
             palm_item.score = score;
             palm_item.rect.topleft = topleft;
             palm_item.rect.btmright = btmright;
-
+            
             /* landmark positions (7 keys) */
             for (int j = 0; j < 7; j++)
             {
                 float lx = p[4 + (2 * j) + 0];
                 float ly = p[4 + (2 * j) + 1];
+                
                 lx += anchor.x_center * _palm_in_width;
                 ly += anchor.y_center * _palm_in_height;
                 lx /= (float)_palm_in_width;
@@ -109,8 +113,6 @@ int PALM::decode_keypoints(std::list<palm_t> &palm_list, float score_thresh)
     }
     return 0;
 }
-
-
 
 /* -------------------------------------------------- *
  *  Apply NonMaxSuppression:
@@ -222,36 +224,40 @@ void PALM::rot_vec(fvec2 &vec, float rotation)
 
 void PALM::compute_hand_rect(palm_t &palm)
 {
-    float width = palm.rect.btmright.x - palm.rect.topleft.x;
+    float width  = palm.rect.btmright.x - palm.rect.topleft.x;
     float height = palm.rect.btmright.y - palm.rect.topleft.y;
-    float palm_cx = palm.rect.topleft.x + width * 0.5f;
+    float palm_cx = palm.rect.topleft.x + width  * 0.5f;
     float palm_cy = palm.rect.topleft.y + height * 0.5f;
     float hand_cx;
     float hand_cy;
     float rotation = palm.rotation;
-    float shift_x = 0.0f;
+    float shift_x =  0.0f;
     float shift_y = -0.5f;
 
     if (rotation == 0.0f)
     {
-        hand_cx = palm_cx + (width * shift_x);
+        hand_cx = palm_cx + (width *  shift_x);
         hand_cy = palm_cy + (height * shift_y);
     }
     else
     {
         float dx = (width * shift_x) * std::cos(rotation) -
                    (height * shift_y) * std::sin(rotation);
+
         float dy = (width * shift_x) * std::sin(rotation) +
                    (height * shift_y) * std::cos(rotation);
+
         hand_cx = palm_cx + dx;
         hand_cy = palm_cy + dy;
     }
 
+    // make the crop rectangle
     float long_side = std::max(width, height);
-    width = long_side;
+    width  = long_side;
     height = long_side;
-    float hand_w = width * 2.6f;
-    float hand_h = height * 2.6f;
+    
+    float hand_w = width  * 2.0f;
+    float hand_h = height * 2.0f;
 
     palm.hand_cx = hand_cx;
     palm.hand_cy = hand_cy;
@@ -319,13 +325,18 @@ void PALM::run(const cv::Mat &frame, palm_detection_result_t &palm_result)
         exit(1);
     }
 
+    // get the key points from the model without any modification 
     std::list<palm_t> palm_list;
     decode_keypoints(palm_list, confThreshold);
 
+    // apply non maximum suppression
     std::list<palm_t> palm_nms_list;
     non_max_suppression(palm_list, palm_nms_list, nmsThreshold);
 
+    // std::cout << palm_nms_list.size() << std::endl;
     pack_palm_result(&palm_result, palm_nms_list);
 
 
 }
+
+
