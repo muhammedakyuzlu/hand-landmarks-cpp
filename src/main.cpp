@@ -30,22 +30,21 @@ int main(int argc, char *argv[])
     handLandmarkModel.loadModel(hand_model_path);
 
     cv::VideoCapture capture;
-    cv::Mat frame;
-   
-   
+
     // // load input video or open web cam
     // if (all_of(video_path.begin(), video_path.end(), ::isdigit) == false)
     //     capture.open(video_path);
     // else
     //     capture.open(stoi(video_path));
 
+    cv::Mat frame; // = cv::imread(image_path);
+    // cv::Mat image;
     // if (!capture.isOpened())
     //     throw "\nError when reading video steam\n";
     // cv::namedWindow("w", 1);
-    
     capture.open(0);
     // save video config
-    // bool save = false;
+    bool save = false;
     // auto fourcc = capture.get(cv::CAP_PROP_FOURCC);
     int _img_width  = capture.get(cv::CAP_PROP_FRAME_WIDTH);
     int _img_height = capture.get(cv::CAP_PROP_FRAME_HEIGHT);
@@ -58,7 +57,8 @@ int main(int argc, char *argv[])
         capture.read(frame);
         if (frame.empty())
             break;
-        
+        int64 start = cv::getTickCount();
+
         cv::flip(frame,frame,1);
         cv::Mat  normalizedImg;
         preprocess(frame, normalizedImg);
@@ -131,18 +131,23 @@ int main(int argc, char *argv[])
                 // bottomRight.x = palm.rect.btmright.x * _img_width;
                 // bottomRight.y = palm.rect.btmright.y * _img_height;
 
-                cv::Rect _r(topLeft,bottomRight);
-                cv::rectangle(frame,_r,cv::Scalar(255,255,255),1);
+                // cv::Rect _r(topLeft,bottomRight);
+                // cv::rectangle(frame,_r,cv::Scalar(255,255,255),1);
             }
 
             for(auto hand : hand_results){
                 // show hand landmark
                 for(auto landmark:hand.joint){
-
-                    cv::Point p = cv::Point(landmark.x + hand.offset.x ,landmark.y + hand.offset.y);
+                    cv::Point p = cv::Point(landmark.x ,landmark.y );
                     cv::circle(frame,p,3,cv::Scalar(0,0,255),-1);
                 }
             }
+
+        
+            double fps = cv::getTickFrequency() / (cv::getTickCount() - start);
+    
+            cv::putText(frame,"FPS " + std::to_string(fps) ,cv::Point(50,50),1,1,cv::Scalar(0,0,255),1);
+            // std::cout << "FPS : " << fps << std::endl;
 
         }
 

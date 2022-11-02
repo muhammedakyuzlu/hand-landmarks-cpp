@@ -24,7 +24,6 @@ typedef struct _hand_landmark_result_t
 {
     float score;
     fvec3 joint[HAND_JOINT_NUM];
-    fvec2 offset;
 } hand_landmark_result_t;
 
 typedef struct _palm_t

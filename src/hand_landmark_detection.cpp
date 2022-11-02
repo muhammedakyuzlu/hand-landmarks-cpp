@@ -96,19 +96,12 @@ void HandLandmark::run(cv::Mat frame,std::vector<hand_landmark_result_t>  &hand_
         _tem.score = _pHandOutputLayerScore[0];
 
         if(_pHandOutputLayerScore[0] > confThreshold){
-            std::cout << "score  " <<_pHandOutputLayerScore[0] << std::endl;
             for (int i = 0; i < HAND_JOINT_NUM; i ++)
             {
-                _tem.joint[i].x = _pHandOutputLayerLandmarks[3 * i + 0] / (float)_hand_in_width;
-                _tem.joint[i].y = _pHandOutputLayerLandmarks[3 * i + 1] / (float)_hand_in_height;
-                _tem.joint[i].z = _pHandOutputLayerLandmarks[3 * i + 2] / (float)_hand_in_width;
-
-                _tem.joint[i].x *= w ;
-                _tem.joint[i].y *= h ;
-                _tem.joint[i].z *= w ;
+                _tem.joint[i].x = (_pHandOutputLayerLandmarks[3 * i + 0] / (float)_hand_in_width)  * w + x;
+                _tem.joint[i].y = (_pHandOutputLayerLandmarks[3 * i + 1] / (float)_hand_in_height) * h + y;
+                _tem.joint[i].z =( _pHandOutputLayerLandmarks[3 * i + 2] / (float)_hand_in_width)  *  w + x;
             }
-            _tem.offset.x = x;
-            _tem.offset.y = y;
             hand_results.push_back(_tem);
         }
     }
